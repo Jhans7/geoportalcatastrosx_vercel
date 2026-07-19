@@ -1442,12 +1442,8 @@ function cerrarPanelConsultas() {
     document.getElementById('btn_consultas')?.classList.remove('activa');
 }
 
-function nombresCapasCargadasPorTipo(tipo) {
-    return Object.keys(capasCargadas).filter(nombre => {
-        const n = normalizarNombreCampoPopup(nombre);
-        if (tipo === 'predios') return n.includes('catastro') || n.includes('predio') || n.includes('zurbana') || n.includes('zrural');
-        return true;
-    });
+function nombresCapasCargadas() {
+    return Object.keys(capasCargadas);
 }
 
 function llenarSelectCapas(id, nombres) {
@@ -1458,7 +1454,11 @@ function llenarSelectCapas(id, nombres) {
         : '<option value="">No hay capas cargadas</option>';
 }
 
-function actualizarCapasConsultaReporte() { llenarSelectCapas('capa_consulta_reporte', nombresCapasCargadasPorTipo('predios')); cargarOpcionesConsulta(); }
+function actualizarCapasConsultaReporte() {
+    llenarSelectCapas('capa_consulta_reporte', nombresCapasCargadas());
+    cargarOpcionesConsulta();
+}
+
 function actualizarFormularioConsulta() { cargarOpcionesConsulta(); }
 
 function obtenerFeaturesCapa(nombreCapa) {
@@ -1483,17 +1483,61 @@ function obtenerValoresUnicos(features, campo) {
 
 function cargarOpcionesConsulta() {
     const capa = document.getElementById('capa_consulta_reporte')?.value;
-    const tipo = document.getElementById('tipo_consulta_reporte')?.value;
+    const selectTipo = document.getElementById('tipo_consulta_reporte');
     const selectValor = document.getElementById('valor_consulta_reporte');
-    if (!selectValor) return;
-    const features = obtenerFeaturesCapa(capa);
-    if (!features.length) { selectValor.innerHTML = '<option value="">Sin datos</option>'; cargarFiltroAdicional(); return; }
-    const campos = Object.keys(features[0].properties || {});
+    if (!selectTipo || !selectValor) return;
 
-    if (tipo === 'edificacion') selectValor.innerHTML = '<option value="edificados">Predios edificados</option><option value="vacios">Solares vacíos</option>';
-    if (tipo === 'barrio') { const campo = buscarCampoPorVariantes(campos, CAMPOS_BARRIO); selectValor.innerHTML = campo ? obtenerValoresUnicos(features, campo).map(v => `<option value="${escaparAtributoHtml(v)}">${escaparHtmlPopup(v)}</option>`).join('') : '<option value="">No se encontró Barrio_Sec</option>'; }
-    if (tipo === 'pit') { const campo = buscarCampoPorVariantes(campos, CAMPOS_PIT); selectValor.innerHTML = campo ? obtenerValoresUnicos(features, campo).map(v => `<option value="${escaparAtributoHtml(v)}">${escaparHtmlPopup(v)}</option>`).join('') : '<option value="">No se encontró No_PIT</option>'; }
-    if (tipo === 'uso_suelo') { const campo = buscarCampoPorVariantes(campos, CAMPOS_USO_SUELO); selectValor.innerHTML = campo ? obtenerValoresUnicos(features, campo).map(v => `<option value="${escaparAtributoHtml(v)}">${escaparHtmlPopup(v)}</option>`).join('') : '<option value="">No se encontró Uso_Genera</option>'; }
+    if (!capa) {
+        selectTipo.innerHTML = '<option value="">Selecciona una capa</option>';
+        selectValor.innerHTML = '<option value="">Sin datos</option>';
+        cargarFiltroAdicional();
+        return;
+    }
+
+    const features = obtenerFeaturesCapa(capa);
+    if (!features.length) {
+        selectTipo.innerHTML = '<option value="">Sin datos en la capa</option>';
+        selectValor.innerHTML = '<option value="">Sin datos</option>';
+        cargarFiltroAdicional();
+        return;
+    }
+
+    const campos = Object.keys(features[0].properties || {});
+    const esReportes = normalizarNombreCampoPopup(capa).includes('reportes_portal');
+    const campoReporte = buscarCampoPorVariantes(campos, ['tipo_reporte']);
+    const campoEstado = buscarCampoPorVariantes(campos, ['estado']);
+
+    if (esReportes) {
+        const tipoActual = document.getElementById('tipo_consulta_reporte').value;
+        selectTipo.innerHTML = `
+            <option value="todos_reportes">Todos los reportes</option>
+            <option value="tipo_reporte">Por tipo de reporte</option>
+        `;
+        if (tipoActual === 'tipo_reporte' || tipoActual === 'todos_reportes') selectTipo.value = tipoActual;
+
+        if (selectTipo.value === 'tipo_reporte' && campoReporte) {
+            selectValor.innerHTML = obtenerValoresUnicos(features, campoReporte).map(v =>
+                `<option value="${escaparAtributoHtml(v)}">${escaparHtmlPopup(v)}</option>`
+            ).join('');
+        } else {
+            selectValor.innerHTML = '<option value="todos">Mostrar todos</option>';
+        }
+    } else {
+        const tipoActual = document.getElementById('tipo_consulta_reporte').value;
+        selectTipo.innerHTML = `
+            <option value="edificacion">Estado de edificación</option>
+            <option value="barrio">Reporte por barrio</option>
+            <option value="pit">Reporte por PIT</option>
+            <option value="uso_suelo">Reporte por uso de suelo</option>
+        `;
+        if (['edificacion','barrio','pit','uso_suelo'].includes(tipoActual)) selectTipo.value = tipoActual;
+
+        const tipo = document.getElementById('tipo_consulta_reporte').value;
+        if (tipo === 'edificacion') selectValor.innerHTML = '<option value="edificados">Predios edificados</option><option value="vacios">Solares vacíos</option>';
+        else if (tipo === 'barrio') { const campo = buscarCampoPorVariantes(campos, CAMPOS_BARRIO); selectValor.innerHTML = campo ? obtenerValoresUnicos(features, campo).map(v => `<option value="${escaparAtributoHtml(v)}">${escaparHtmlPopup(v)}</option>`).join('') : '<option value="">No se encontró Barrio_Sec</option>'; }
+        else if (tipo === 'pit') { const campo = buscarCampoPorVariantes(campos, CAMPOS_PIT); selectValor.innerHTML = campo ? obtenerValoresUnicos(features, campo).map(v => `<option value="${escaparAtributoHtml(v)}">${escaparHtmlPopup(v)}</option>`).join('') : '<option value="">No se encontró No_PIT</option>'; }
+        else if (tipo === 'uso_suelo') { const campo = buscarCampoPorVariantes(campos, CAMPOS_USO_SUELO); selectValor.innerHTML = campo ? obtenerValoresUnicos(features, campo).map(v => `<option value="${escaparAtributoHtml(v)}">${escaparHtmlPopup(v)}</option>`).join('') : '<option value="">No se encontró Uso_Genera</option>'; }
+    }
     cargarFiltroAdicional();
 }
 
@@ -1504,21 +1548,40 @@ function cargarFiltroAdicional() {
     const features = obtenerFeaturesCapa(capa);
     if (!features.length) { select.innerHTML = '<option value="todos">Todos</option>'; return; }
     const campos = Object.keys(features[0].properties || {});
-    const campoSector = buscarCampoPorVariantes(campos, CAMPOS_SECTOR);
-    const campoBarrio = buscarCampoPorVariantes(campos, CAMPOS_BARRIO);
     const opciones = ['<option value="todos">Todos los resultados</option>'];
 
-    if (campoSector) {
-        obtenerValoresUnicos(features, campoSector).forEach(valor => {
-            const payload = encodeURIComponent(JSON.stringify({ tipo:'sector', campo:campoSector, valor }));
-            opciones.push(`<option value="${payload}">Sector: ${escaparHtmlPopup(valor)}</option>`);
-        });
-    }
-    if (campoBarrio) {
-        obtenerValoresUnicos(features, campoBarrio).forEach(valor => {
-            const payload = encodeURIComponent(JSON.stringify({ tipo:'barrio', campo:campoBarrio, valor }));
-            opciones.push(`<option value="${payload}">Barrio: ${escaparHtmlPopup(valor)}</option>`);
-        });
+    const esReportes = normalizarNombreCampoPopup(capa).includes('reportes_portal');
+
+    if (esReportes) {
+        const campoTipo = buscarCampoPorVariantes(campos, ['tipo_reporte']);
+        if (campoTipo) {
+            obtenerValoresUnicos(features, campoTipo).forEach(valor => {
+                const payload = encodeURIComponent(JSON.stringify({ tipo:'tipo_reporte', campo:campoTipo, valor }));
+                opciones.push(`<option value="${payload}">Tipo: ${escaparHtmlPopup(valor)}</option>`);
+            });
+        }
+        const campoEstado = buscarCampoPorVariantes(campos, ['estado']);
+        if (campoEstado) {
+            obtenerValoresUnicos(features, campoEstado).forEach(valor => {
+                const payload = encodeURIComponent(JSON.stringify({ tipo:'estado', campo:campoEstado, valor }));
+                opciones.push(`<option value="${payload}">Estado: ${escaparHtmlPopup(valor)}</option>`);
+            });
+        }
+    } else {
+        const campoSector = buscarCampoPorVariantes(campos, CAMPOS_SECTOR);
+        const campoBarrio = buscarCampoPorVariantes(campos, CAMPOS_BARRIO);
+        if (campoSector) {
+            obtenerValoresUnicos(features, campoSector).forEach(valor => {
+                const payload = encodeURIComponent(JSON.stringify({ tipo:'sector', campo:campoSector, valor }));
+                opciones.push(`<option value="${payload}">Sector: ${escaparHtmlPopup(valor)}</option>`);
+            });
+        }
+        if (campoBarrio) {
+            obtenerValoresUnicos(features, campoBarrio).forEach(valor => {
+                const payload = encodeURIComponent(JSON.stringify({ tipo:'barrio', campo:campoBarrio, valor }));
+                opciones.push(`<option value="${payload}">Barrio: ${escaparHtmlPopup(valor)}</option>`);
+            });
+        }
     }
     select.innerHTML = opciones.join('');
 }
@@ -1527,8 +1590,16 @@ document.addEventListener('change', evento => { if (evento.target?.id === 'capa_
 
 function resaltarResultadosConsulta(features) {
     if (capaResultadosConsulta) map.removeLayer(capaResultadosConsulta);
+    const esPunto = features.some(f => f.geometry?.type === 'Point');
     capaResultadosConsulta = L.geoJSON({ type:'FeatureCollection', features }, {
-        style: { color:'#ffea00', weight:4, fillColor:'#fff176', fillOpacity:.5 }
+        style: esPunto ? null : { color:'#ffea00', weight:4, fillColor:'#fff176', fillOpacity:.5 },
+        pointToLayer: esPunto ? function(feature, latlng) {
+            const tipo = feature.properties?.tipo_reporte || 'Reporte';
+            return L.circleMarker(latlng, {
+                radius: 8, color: '#ef4444', weight: 2.5,
+                fillColor: '#ef4444', fillOpacity: 0.85
+            }).bindPopup(`<b>${escaparHtmlPopup(tipo)}</b><br>${escaparHtmlPopup(feature.properties?.comentario || '')}`);
+        } : undefined
     }).addTo(map);
     const bounds = capaResultadosConsulta.getBounds();
     if (bounds.isValid()) map.fitBounds(bounds, {padding:[25,25]});
@@ -1569,7 +1640,18 @@ function ejecutarConsultaReporte() {
         const campos = Object.keys(features[0].properties || {});
         let resultadosBase = [], descripcion = '';
 
-        if (tipo === 'edificacion') {
+        if (tipo === 'todos_reportes') {
+            resultadosBase = features;
+            const total = features.length;
+            descripcion = `reporte(s) encontrados (${total})`;
+            nombreReporteActual = 'todos_los_reportes.xlsx';
+        } else if (tipo === 'tipo_reporte') {
+            const campo = buscarCampoPorVariantes(campos, ['tipo_reporte']);
+            if (!campo) throw new Error('No se encontró el campo tipo_reporte.');
+            resultadosBase = features.filter(f => String(f.properties?.[campo] ?? '').trim() === String(valor).trim());
+            descripcion = `reporte(s) de tipo "${valor}"`;
+            nombreReporteActual = `reportes_${normalizarNombreCampoPopup(valor)}.xlsx`;
+        } else if (tipo === 'edificacion') {
             const campoArea = buscarCampoPorVariantes(campos, CAMPOS_AREA_CONSTRUIDA);
             if (!campoArea) throw new Error('No se encontró el campo AreaConst en la capa.');
             if (valor === 'edificados') { resultadosBase = features.filter(f => valorNumericoConsulta(f.properties?.[campoArea]) > 0); descripcion = 'predio(s) edificados'; nombreReporteActual = 'predios_edificados.xlsx'; }
