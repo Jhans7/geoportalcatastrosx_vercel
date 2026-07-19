@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoPortal Catastro Santa Cruz</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+    <!-- Barra de progreso -->
+    <div id="progreso_carga" class="progreso-carga" role="status" aria-live="polite">
+        <div class="progreso-cabecera">
+            <div id="progreso_titulo" class="progreso-titulo">Cargando capa...</div>
+            <div id="progreso_porcentaje" class="progreso-porcentaje">0 %</div>
+        </div>
+        <div class="progreso-barra">
+            <div id="progreso_barra_interior" class="progreso-barra-interior"></div>
+        </div>
+        <div id="progreso_detalle" class="progreso-detalle">Preparando la consulta...</div>
+    </div>
+
+    <!-- Pantalla de inicio -->
+    <section id="pantalla_inicio">
+        <div class="login-card">
+            <div class="login-brand">
+                <div class="login-logo">G</div>
+                <h1>GeoPortal Catastro Santa Cruz</h1>
+                <p>Visor cartográfico para consultar y visualizar información geoespacial del cantón Santa Cruz, Galápagos.</p>
+            </div>
+            <div class="login-form">
+                <h2>Conectar al visor</h2>
+                <p class="subtitulo">Ingresa los datos de conexión de tu proyecto Supabase para continuar.</p>
+                <label for="supabase_url">URL del proyecto</label>
+                <input id="supabase_url" type="text" placeholder="https://xxxxx.supabase.co">
+                <label for="supabase_key">API Key</label>
+                <input id="supabase_key" type="password" placeholder="Clave anon o publishable">
+                <button id="btn_descubrir" class="btn-conectar" type="button" onclick="descubrirTablas()">Conectar</button>
+                <div class="login-ayuda">Utiliza únicamente una clave pública anon o publishable. Versión 2.0 con detección automática de capas.</div>
+                <div id="mensaje_login" role="alert" aria-live="polite"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Aplicación principal -->
+    <section id="app_principal">
+
+        <!-- Cabecera -->
+        <header class="app-header">
+            <div class="app-header-titulo">
+                <h1>GeoPortal Catastro Santa Cruz</h1>
+                <p>Visor Geográfico</p>
+            </div>
+            <div id="perfil_conexion" style="display:none">
+                <button id="perfil_btn" class="perfil-btn" type="button" title="Conexión" aria-label="Abrir menú de conexión">
+                    <span class="usuario-icono" aria-hidden="true"></span>
+                    <span id="estado_conexion_dot" class="estado-conexion-dot desconectado" aria-hidden="true"></span>
+                </button>
+                <div id="perfil_menu" class="perfil-menu">
+                    <div class="perfil-avatar-grande">
+                        <span class="usuario-icono" aria-hidden="true"></span>
+                        <span id="estado_conexion_dot_grande" class="estado-conexion-dot desconectado" aria-hidden="true"></span>
+                    </div>
+                    <div class="perfil-titulo">Conexión Supabase</div>
+                    <div id="perfil_proyecto" class="perfil-proyecto"></div>
+                    <div class="perfil-estado">● Conexión activa</div>
+                    <button class="gris" type="button" onclick="mostrarConexion()">Cambiar conexión</button>
+                    <button type="button" onclick="desconectar()">Desconectar</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Barra de herramientas -->
+        <nav class="barra-herramientas" aria-label="Herramientas del mapa">
+            <div class="grupo-herramientas">
+                <button id="btn_buscar_predio" class="herramienta-btn" type="button" title="Buscar predio" onclick="alternarBusqueda()">
+                    <span class="herramienta-icono">🔍</span><span>Buscar</span>
+                </button>
+                <button id="btn_identificar" class="herramienta-btn" type="button" title="Consultar atributos" onclick="activarIdentificar()">
+                    <span class="herramienta-icono">ⓘ</span><span>Atributos</span>
+                </button>
+                <button id="btn_consultas" class="herramienta-btn" type="button" title="Consultas y reportes" onclick="alternarPanelConsultas()">
+                    <span class="herramienta-icono">☷</span><span>Consultas</span>
+                </button>
+                <button id="btn_reportes" class="herramienta-btn" type="button" title="Reportar incidente" onclick="alternarPanelReportes()">
+                    <span class="herramienta-icono">🚩</span><span>Reportes</span>
+                </button>
+            </div>
+            <div class="grupo-herramientas">
+                <button id="btn_medir_distancia" class="herramienta-btn" type="button" title="Medir distancia" onclick="activarMedicion('distancia')">
+                    <span class="herramienta-icono">📏</span><span>Distancia</span>
+                </button>
+                <button id="btn_medir_area" class="herramienta-btn" type="button" title="Medir área" onclick="activarMedicion('area')">
+                    <span class="herramienta-icono">▱</span><span>Área</span>
+                </button>
+                <button id="btn_limpiar_medicion" class="herramienta-btn" type="button" title="Desmarcar" onclick="limpiarMediciones()">
+                    <span class="herramienta-icono">✖</span><span>Desmarcar</span>
+                </button>
+                <div class="selector-mapa-base">
+                    <button id="btn_mapa_base" class="herramienta-btn" type="button" title="Cambiar mapa base" onclick="alternarMenuMapaBase(event)">
+                        <span class="herramienta-icono">🗺</span><span>Mapa base</span>
+                    </button>
+                    <div id="menu_mapa_base" class="menu-mapa-base">
+                        <button id="opcion_base_callejero" class="opcion-mapa-base" type="button" onclick="cambiarMapaBase('callejero')">
+                            <span class="muestra-mapa-base muestra-callejero"></span>
+                            <span class="mapa-base-texto">Callejero<small>Rápido y liviano</small></span>
+                        </button>
+                        <button id="opcion_base_satelite" class="opcion-mapa-base" type="button" onclick="cambiarMapaBase('satelite')">
+                            <span class="muestra-mapa-base muestra-satelite"></span>
+                            <span class="mapa-base-texto">Esri Satélite<small>Imagen aérea detallada</small></span>
+                        </button>
+                        <button id="opcion_base_hibrido" class="opcion-mapa-base" type="button" onclick="cambiarMapaBase('hibrido')">
+                            <span class="muestra-mapa-base muestra-hibrido"></span>
+                            <span class="mapa-base-texto">Esri Híbrido<small>Imagen con nombres</small></span>
+                        </button>
+                        <button id="opcion_base_google_satelite" class="opcion-mapa-base activa" type="button" onclick="cambiarMapaBase('google_satelite')">
+                            <span class="muestra-mapa-base muestra-google-satelite"></span>
+                            <span class="mapa-base-texto">Google Satellite<small>Demo sin API Key</small></span>
+                        </button>
+                        <button id="opcion_base_google_hibrido" class="opcion-mapa-base" type="button" onclick="cambiarMapaBase('google_hibrido')">
+                            <span class="muestra-mapa-base muestra-google-hibrido"></span>
+                            <span class="mapa-base-texto">Google Hybrid<small>Satélite con nombres · Demo</small></span>
+                        </button>
+                        <div class="aviso-google-demo">Google se incluye solo para demostración académica. Puede dejar de funcionar sin previo aviso.</div>
+                        <button id="opcion_google_earth" class="opcion-mapa-base" type="button" onclick="abrirGoogleEarth()">
+                            <span class="muestra-mapa-base muestra-google-earth"></span>
+                            <span class="mapa-base-texto">Google Earth<small>Abrir ubicación actual</small></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="panel_busqueda">
+                <input id="buscar_predio_input" type="text" placeholder="Clave, código, nombre o cualquier atributo..."
+                    onkeydown="if(event.key === 'Enter') buscarPredio()">
+                <button class="herramienta-btn" type="button" onclick="buscarPredio()">Buscar</button>
+                <span id="resultado_busqueda"></span>
+                <div id="navegacion_busqueda">
+                    <button id="btn_resultado_anterior" class="btn-resultado" type="button" title="Anterior" onclick="mostrarResultadoBusqueda(indiceResultadoBusqueda - 1)">◀</button>
+                    <span id="contador_busqueda">0 de 0</span>
+                    <button id="btn_resultado_siguiente" class="btn-resultado" type="button" title="Siguiente" onclick="mostrarResultadoBusqueda(indiceResultadoBusqueda + 1)">▶</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Toast de estado -->
+        <div id="estado"></div>
+        <div id="toast_estado" class="toast-estado" role="status" aria-live="polite">
+            <div id="toast_icono" class="toast-icono">i</div>
+            <div class="toast-contenido">
+                <div id="toast_titulo" class="toast-titulo">Información</div>
+                <div id="toast_mensaje" class="toast-mensaje"></div>
+            </div>
+            <button id="toast_cerrar" class="toast-cerrar" type="button" title="Cerrar" aria-label="Cerrar">×</button>
+        </div>
+
+        <!-- Panel de consultas y reportes -->
+        <section id="panel_consultas_reportes" class="panel-consultas-reportes" aria-label="Consultas y reportes">
+            <div class="consultas-cabecera">
+                <div>
+                    <h3>Consultas y reportes</h3>
+                    <p>Aplica filtros catastrales y descarga los resultados.</p>
+                </div>
+                <button type="button" class="consultas-cerrar" onclick="cerrarPanelConsultas()" title="Cerrar">×</button>
+            </div>
+            <div class="consultas-contenido">
+                <label for="capa_consulta_reporte">1. Capa</label>
+                <select id="capa_consulta_reporte"></select>
+                <label for="tipo_consulta_reporte">2. Tipo de consulta</label>
+                <select id="tipo_consulta_reporte" onchange="actualizarFormularioConsulta()">
+                    <option value="edificacion">Estado de edificación</option>
+                    <option value="barrio">Reporte por barrio</option>
+                    <option value="pit">Reporte por PIT</option>
+                    <option value="uso_suelo">Reporte por uso de suelo</option>
+                </select>
+                <label for="valor_consulta_reporte">3. Valor de consulta</label>
+                <select id="valor_consulta_reporte"></select>
+                <label for="filtro_adicional_reporte">4. Filtro adicional</label>
+                <select id="filtro_adicional_reporte"></select>
+                <div class="consulta-aviso">El filtro adicional permite mostrar todos los resultados o limitar la consulta por sector o barrio.</div>
+                <div class="consultas-acciones">
+                    <button type="button" onclick="ejecutarConsultaReporte()">Ejecutar consulta</button>
+                    <button id="btn_descargar_reporte" type="button" class="verde" onclick="descargarReporteExcel()" disabled>Descargar Excel</button>
+                    <button type="button" class="gris" onclick="limpiarConsultaReporte()">Limpiar</button>
+                </div>
+                <div id="resumen_consulta_reporte" class="resumen-consulta-reporte">Selecciona una capa y configura la consulta.</div>
+            </div>
+        </section>
+
+        <!-- Panel de reportes -->
+        <section id="panel_reportes" class="panel-consultas-reportes" aria-label="Reportes">
+            <div class="consultas-cabecera">
+                <div>
+                    <h3>Reportar incidente</h3>
+                    <p>Selecciona el tipo, marca la ubicación y escribe tu reporte.</p>
+                </div>
+                <button type="button" class="consultas-cerrar" onclick="cerrarPanelReportes()" title="Cerrar">×</button>
+            </div>
+            <div class="consultas-contenido">
+                <label for="tipo_reporte_select">1. Tipo de reporte</label>
+                <select id="tipo_reporte_select">
+                    <option value="">-- Selecciona una opción --</option>
+                    <option value="Denuncia">Denuncia</option>
+                    <option value="Inspección por permisos">Inspección por permisos</option>
+                    <option value="Inspección Catastral UC">Inspección Catastral UC</option>
+                    <option value="Notificaciones">Notificaciones</option>
+                    <option value="Varios">Varios</option>
+                </select>
+
+                <label for="comentario_reporte">2. Comentario / Descripción</label>
+                <textarea id="comentario_reporte" rows="4" placeholder="Describe el motivo del reporte..."></textarea>
+
+                <label>3. Ubicación en el mapa</label>
+                <p class="consulta-aviso">Haz clic en el mapa para marcar la ubicación, o usa tu posición GPS actual.</p>
+                <div id="coordenadas_reporte" class="coordenadas-reporte">Sin ubicación seleccionada</div>
+                <div class="reportes-acciones-ubicacion">
+                    <button type="button" onclick="usarUbicacionGPS()" id="btn_gps_reporte">📍 Usar mi ubicación</button>
+                    <button type="button" class="gris" onclick="limpiarUbicacionReporte()">Limpiar marcador</button>
+                </div>
+
+                <div class="consultas-acciones">
+                    <button type="button" class="verde" onclick="enviarReporte()" id="btn_enviar_reporte">Enviar reporte</button>
+                    <button type="button" class="gris" onclick="limpiarFormularioReporte()">Limpiar</button>
+                </div>
+                <div id="resumen_reporte" class="resumen-consulta-reporte">Selecciona tipo, ubicación y escribe un comentario.</div>
+            </div>
+        </section>
+
+        <!-- Layout principal: panel + mapa -->
+        <div id="app_layout">
+            <aside id="panel_capas">
+                <section id="seccion_disponibles" class="panel-seccion panel-disponibles">
+                    <div class="panel-capas-header">
+                        <div class="panel-capas-titulo">
+                            <h3>Capas disponibles</h3>
+                            <button id="btn_plegar_disponibles" class="btn-plegar" type="button" title="Ocultar sección"
+                                onclick="alternarSeccion('seccion_disponibles', 'btn_plegar_disponibles')">▴</button>
+                        </div>
+                        <div class="panel-capas-acciones panel-acciones-tres">
+                            <button id="btn_marcar_todas" type="button" onclick="alternarSeleccionCapasDisponibles()" title="Marcar o desmarcar todas">Marcar todas</button>
+                            <button id="btn_cargar" type="button" class="verde" onclick="cargarCapas()" style="display:none" title="Cargar las capas seleccionadas">Cargar</button>
+                            <button id="btn_actualizar_capas" type="button" onclick="actualizarCapasDisponibles()" title="Actualizar desde Supabase" aria-label="Actualizar capas">
+                                <svg class="icono-svg icono-recargar" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M19 7V3l-2 2a8 8 0 1 0 2.3 8.7"/><path d="M19 3v4h-4"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="panel-seccion-contenido">
+                        <div id="bloque_tablas">
+                            <div id="lista_tablas"></div>
+                        </div>
+                        <div id="panel_disponibles_vacio" class="panel-mensaje">Conéctate para consultar las capas disponibles.</div>
+                    </div>
+                </section>
+                <div class="panel-divisor"></div>
+                <section id="seccion_cargadas" class="panel-seccion panel-cargadas">
+                    <div class="panel-capas-header">
+                        <div class="panel-capas-titulo">
+                            <h3>Capas cargadas</h3>
+                            <button id="btn_plegar_cargadas" class="btn-plegar" type="button" title="Ocultar sección"
+                                onclick="alternarSeccion('seccion_cargadas', 'btn_plegar_cargadas')">▴</button>
+                        </div>
+                        <div class="panel-capas-acciones acciones-capas-cargadas">
+                            <button id="btn_alternar_capas" type="button" onclick="alternarVisibilidadCapas()" title="Encender o apagar todas">Encender todas</button>
+                            <button id="btn_zoom_seleccion" class="btn-icono-capa" type="button" onclick="zoomCapasSeleccionadas()" title="Zoom a seleccionadas" disabled>
+                                <svg class="icono-svg icono-zoom-capa" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M14.8 14.8L21 21"/><path class="detalle-amarillo" d="M4.5 17.5L9 13"/></svg>
+                            </button>
+                            <button id="btn_visibilidad_seleccion" class="btn-icono-capa" type="button" onclick="alternarVisibilidadSeleccionadas()" title="Mostrar u ocultar seleccionadas" disabled>
+                                <svg class="icono-svg icono-ojo" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
+                            </button>
+                            <label id="btn_color_seleccion" class="btn-icono-capa btn-color-seleccion deshabilitado" title="Cambiar color de seleccionadas">
+                                <span class="icono-paleta-color" aria-hidden="true">🎨</span>
+                                <input id="color_capas_seleccionadas" type="color" value="#1976d2" aria-label="Color de seleccionadas"
+                                    onchange="cambiarColorCapasSeleccionadas(this.value)" disabled>
+                            </label>
+                            <button id="btn_quitar_seleccion" class="btn-icono-capa btn-eliminar-capa" type="button" onclick="quitarCapasSeleccionadas()" title="Quitar seleccionadas" disabled>
+                                <svg class="icono-svg icono-papelera" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"/><path d="M9 7V4h6v3"/><path d="M7.5 7l1 13h7l1-13"/><path d="M10 10v7M14 10v7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="panel-seccion-contenido">
+                        <div id="lista_capas_qgis">
+                            <div id="panel_capas_vacio">Todavía no has cargado capas.</div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+            <section id="map_wrap">
+                <div id="map"></div>
+            </section>
+        </div>
+
+        <!-- Barra de estado -->
+        <footer class="barra-estado">
+            <div class="estado-grupo">
+                <span class="estado-item"><b>Herramienta:</b> <span id="estado_herramienta">Ninguna</span></span>
+                <span class="estado-item"><b>Resultado:</b> <span id="estado_medicion">—</span></span>
+            </div>
+            <div class="estado-grupo">
+                <span class="estado-item"><b>X:</b> <span id="coord_x">—</span></span>
+                <span class="estado-item"><b>Y:</b> <span id="coord_y">—</span></span>
+                <span class="estado-item"><b>Zoom:</b> <span id="estado_zoom">10</span></span>
+            </div>
+        </footer>
+    </section>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
