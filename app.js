@@ -555,7 +555,8 @@ const ETIQUETAS_POPUP = {
     cos_pb:'COS planta baja', cos_total:'COS total', lote_minim:'Lote mínimo normativo', altura_max:'Altura máxima',
     pisos:'Número de pisos', uso_genera:'Uso general', tratamient:'Tratamiento', tsunami:'Tsunami',
     encanadas:'Encañadas', inundacion:'Inundación', grietas:'Grietas', barranco:'Barranco', tuneles:'Túneles',
-    ubicacion:'Ubicación', frente_min:'Frente mínimo', subpit:'SubPIT', observacion:'Observación', observaciones:'Observaciones'
+    ubicacion:'Ubicación', frente_min:'Frente mínimo', subpit:'SubPIT', observacion:'Observación', observaciones:'Observaciones',
+    latitud:'Latitud', longitud:'Longitud'
 };
 
 const GRUPOS_CAMPOS_PRINCIPALES_POPUP = [
@@ -571,6 +572,7 @@ const GRUPOS_CAMPOS_CONSTRUCCION_POPUP = [
 ];
 
 const ORDEN_SECUNDARIO_CATASTRO_POPUP = [
+    ['ubicacion','latitud','longitud'],
     ['area_terre','area_terreno','area','area_m2','superficie'],
     ['areaconst','area_const','area_construida','area_construccion'],
     ['estado'], ['tipo_catas','tipo_catastro','tipo'], ['lote_min','lote_minimo'],
@@ -824,6 +826,11 @@ async function consultarTabla(tabla, color, supabaseUrl, apiKey) {
             style: { color, weight: 2, fillColor: color, fillOpacity: 0.35 },
             pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 6, fillColor: color, color: '#fff', weight: 1, fillOpacity: 0.85 }),
             onEachFeature: (feature, layer) => {
+                if (feature.geometry?.type === 'Point' && feature.geometry?.coordinates) {
+                    const props = feature.properties || {};
+                    props.longitud = Number(feature.geometry.coordinates[0]).toFixed(6);
+                    props.latitud = Number(feature.geometry.coordinates[1]).toFixed(6);
+                }
                 layer.bindPopup(crearPopupFormateado(feature.properties || {}, tabla), {
                     maxWidth: 420, minWidth: 290, autoPan: true,
                     autoPanPaddingTopLeft: [20, 95], autoPanPaddingBottomRight: [20, 45], keepInView: true
@@ -1598,7 +1605,7 @@ function resaltarResultadosConsulta(features) {
             return L.circleMarker(latlng, {
                 radius: 8, color: '#ef4444', weight: 2.5,
                 fillColor: '#ef4444', fillOpacity: 0.85
-            }).bindPopup(`<b>${escaparHtmlPopup(tipo)}</b><br>${escaparHtmlPopup(feature.properties?.comentario || '')}`);
+            }).bindPopup(`<b>${escaparHtmlPopup(tipo)}</b><br>${escaparHtmlPopup(feature.properties?.comentario || '')}<br><small>${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}</small>`);
         } : undefined
     }).addTo(map);
     const bounds = capaResultadosConsulta.getBounds();
@@ -1852,7 +1859,7 @@ async function enviarReporte() {
             weight: 2.5,
             fillColor: '#ef4444',
             fillOpacity: 0.85
-        }).bindPopup(`<b>Reporte: ${escaparHtmlPopup(tipo)}</b><br>${escaparHtmlPopup(comentario)}`).addTo(capaReportes);
+        }).bindPopup(`<b>${escaparHtmlPopup(tipo)}</b><br>${escaparHtmlPopup(comentario)}<br><small>${lat.toFixed(6)}, ${lng.toFixed(6)}</small>`).addTo(capaReportes);
 
         resumen.className = 'resumen-consulta-reporte ok';
         resumen.textContent = `Reporte enviado correctamente (${tipo}).`;
