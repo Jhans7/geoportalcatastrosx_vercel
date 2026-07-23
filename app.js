@@ -133,6 +133,7 @@ mapaBaseGoogleHibrido.on('tileerror', avisarErrorGoogle);
 
 let controlCapas = null;
 let capasCargadas = {};
+let ordenCapas = [];
 
 const colores = [
     '#e41a1c','#377eb8','#4daf4a','#984ea3',
@@ -501,6 +502,7 @@ async function ejecutarCarga(tablas, supabaseUrl, apiKey) {
             if (capa) {
                 capa.addTo(map);
                 capasCargadas[tabla] = capa;
+                if (!ordenCapas.includes(tabla)) ordenCapas.push(tabla);
                 capa.eachLayer(layer => grupoNuevas.addLayer(layer));
                 cargadasNuevas++;
                 nuevasGeometrias += capa.options.totalRegistros || 0;
@@ -905,14 +907,20 @@ function actualizarPanelCapasQGIS() {
     for (const tabla of Array.from(capasSeleccionadasParaQuitar)) {
         if (!capasCargadas[tabla]) capasSeleccionadasParaQuitar.delete(tabla);
     }
-    const entradas = Object.entries(capasCargadas);
-    if (!entradas.length) {
+    // Synchonize ordenCapas with capasCargadas
+    ordenCapas = ordenCapas.filter(tabla => capasCargadas[tabla]);
+    for (const tabla of Object.keys(capasCargadas)) {
+        if (!ordenCapas.includes(tabla)) ordenCapas.push(tabla);
+    }
+    if (!ordenCapas.length) {
         contenedor.innerHTML = '<div id="panel_capas_vacio">No hay capas cargadas todavía.</div>';
         actualizarBotonVisibilidadCapas();
         actualizarAccionesCapasSeleccionadas();
         return;
     }
-    entradas.forEach(([tabla, capa], indice) => {
+    ordenCapas.forEach((tabla, indice) => {
+        const capa = capasCargadas[tabla];
+        if (!capa) return;
         const fila = document.createElement('div');
         fila.className = 'capa-qgis';
         fila.tabIndex = 0;
@@ -938,6 +946,27 @@ function actualizarPanelCapasQGIS() {
         contador.className = 'capa-contador';
         contador.textContent = `(${capa.options.totalRegistros || 0})`;
 
+        const acciones = document.createElement('span');
+        acciones.className = 'capa-acciones';
+
+        const btnSubir = document.createElement('button');
+        btnSubir.type = 'button';
+        btnSubir.className = 'btn-mover-capa';
+        btnSubir.title = 'Subir capa (más arriba en el mapa)';
+        btnSubir.textContent = '▲';
+        btnSubir.disabled = indice === ordenCapas.length - 1;
+        btnSubir.addEventListener('click', e => { e.stopPropagation(); subirCapa(tabla); });
+
+        const btnBajar = document.createElement('button');
+        btnBajar.type = 'button';
+        btnBajar.className = 'btn-mover-capa';
+        btnBajar.title = 'Bajar capa (más abajo en el mapa)';
+        btnBajar.textContent = '▼';
+        btnBajar.disabled = indice === 0;
+        btnBajar.addEventListener('click', e => { e.stopPropagation(); bajarCapa(tabla); });
+
+        acciones.append(btnSubir, btnBajar);
+
         function alternarSeleccionFila() {
             if (capasSeleccionadasParaQuitar.has(tabla)) { capasSeleccionadasParaQuitar.delete(tabla); fila.classList.remove('seleccionada'); }
             else { capasSeleccionadasParaQuitar.add(tabla); fila.classList.add('seleccionada'); }
@@ -948,7 +977,7 @@ function actualizarPanelCapasQGIS() {
         fila.addEventListener('keydown', evento => {
             if (evento.key === 'Enter' || evento.key === ' ') { evento.preventDefault(); alternarSeleccionFila(); }
         });
-        fila.append(simbolo, nombre, contador);
+        fila.append(simbolo, nombre, contador, acciones);
         contenedor.appendChild(fila);
     });
     actualizarBotonVisibilidadCapas();
@@ -960,6 +989,8 @@ function quitarCapa(tabla) {
     if (!capa) return;
     if (map.hasLayer(capa)) map.removeLayer(capa);
     delete capasCargadas[tabla];
+    const idx = ordenCapas.indexOf(tabla);
+    if (idx !== -1) ordenCapas.splice(idx, 1);
     if (typeof resultadosBusqueda !== 'undefined') {
         resultadosBusqueda = resultadosBusqueda.filter(r => r.nombreCapa !== tabla);
         if (resultadosBusqueda.length === 0) { indiceResultadoBusqueda = -1; if (typeof actualizarControlesBusqueda === 'function') actualizarControlesBusqueda(); }
@@ -1011,6 +1042,8 @@ function quitarCapasSeleccionadas() {
         if (capa && map.hasLayer(capa)) map.removeLayer(capa);
         delete capasCargadas[tabla];
         capasSeleccionadasParaQuitar.delete(tabla);
+        const idx = ordenCapas.indexOf(tabla);
+        if (idx !== -1) ordenCapas.splice(idx, 1);
     });
     if (typeof resultadosBusqueda !== 'undefined') {
         resultadosBusqueda = resultadosBusqueda.filter(r => !nombres.includes(r.nombreCapa));
@@ -1022,6 +1055,34 @@ function quitarCapasSeleccionadas() {
     actualizarBotonQuitarSeleccion();
     actualizarCapasDisponibles?.();
     estado(nombres.length === 1 ? `Capa "${nombres[0]}" quitada del visor.` : `${nombres.length} capas quitadas del visor.`, 'green', 3500);
+}
+
+function subirCapa(tabla) {
+    const idx = ordenCapas.indexOf(tabla);
+    if (idx < ordenCapas.length - 1) {
+        [ordenCapas[idx], ordenCapas[idx + 1]] = [ordenCapas[idx + 1], ordenCapas[idx]];
+        reordenarEnMapa();
+    }
+}
+
+function bajarCapa(tabla) {
+    const idx = ordenCapas.indexOf(tabla);
+    if (idx > 0) {
+        [ordenCapas[idx], ordenCapas[idx - 1]] = [ordenCapas[idx - 1], ordenCapas[idx]];
+        reordenarEnMapa();
+    }
+}
+
+function reordenarEnMapa() {
+    // Rebuild map layer order from ordenCapas (index 0 = bottom, last = top)
+    const visibles = ordenCapas.filter(tabla => map.hasLayer(capasCargadas[tabla]));
+    for (const tabla of visibles) {
+        map.removeLayer(capasCargadas[tabla]);
+    }
+    for (const tabla of visibles) {
+        capasCargadas[tabla].addTo(map);
+    }
+    actualizarPanelCapasQGIS();
 }
 
 function actualizarBotonVisibilidadCapas() {
