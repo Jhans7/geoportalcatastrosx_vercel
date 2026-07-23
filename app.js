@@ -1441,12 +1441,19 @@ function alternarPanelConsultas() {
     const abrir = !panel.classList.contains('visible');
     panel.classList.toggle('visible', abrir);
     document.getElementById('btn_consultas')?.classList.toggle('activa', abrir);
-    if (abrir) { actualizarCapasConsultaReporte(); actualizarFormularioConsulta(); }
+    if (abrir) {
+        actualizarCapasConsultaReporte();
+        actualizarFormularioConsulta();
+        document.getElementById('estado_herramienta').textContent = 'Consultas';
+    } else {
+        document.getElementById('estado_herramienta').textContent = 'Ninguna';
+    }
 }
 
 function cerrarPanelConsultas() {
     document.getElementById('panel_consultas_reportes').classList.remove('visible');
     document.getElementById('btn_consultas')?.classList.remove('activa');
+    document.getElementById('estado_herramienta').textContent = 'Ninguna';
 }
 
 function nombresCapasCargadas() {
@@ -1691,6 +1698,8 @@ function ejecutarConsultaReporte() {
         resumen.classList.add('ok');
         resumen.textContent = `${resultadosConsultaReporte.length} ${descripcion}.`;
         document.getElementById('btn_descargar_reporte').disabled = resultadosConsultaReporte.length === 0;
+        document.getElementById('estado_herramienta').textContent = 'Consulta';
+        document.getElementById('estado_medicion').textContent = `${resultadosConsultaReporte.length} resultado(s)`;
     } catch (error) {
         console.error(error);
         resumen.classList.add('error');
@@ -1714,6 +1723,10 @@ function limpiarConsultaReporte() {
     resumen.className = 'resumen-consulta-reporte';
     resumen.textContent = 'Selecciona una capa y configura la consulta.';
     document.getElementById('btn_descargar_reporte').disabled = true;
+    if (document.getElementById('estado_herramienta').textContent === 'Consulta') {
+        document.getElementById('estado_herramienta').textContent = 'Ninguna';
+    }
+    document.getElementById('estado_medicion').textContent = '—';
 }
 
 // ============================================================
