@@ -225,7 +225,7 @@ function togglePanelCapas() {
     const texto = panelCapasVisible ? '◀' : '▶';
     const titulo = panelCapasVisible ? 'Ocultar panel' : 'Mostrar panel';
     if (btn) { btn.textContent = texto; btn.title = titulo; }
-    if (btnFlotante) { btnFlotante.style.display = panelCapasVisible ? 'none' : ''; btnFlotante.title = titulo; }
+    if (btnFlotante) { btnFlotante.style.display = panelCapasVisible ? 'none' : 'flex'; btnFlotante.title = titulo; }
     if (btnToolbar) btnToolbar.title = titulo;
     setTimeout(() => { try { map?.invalidateSize(); } catch(_) {} }, 250);
 }
@@ -242,7 +242,7 @@ function togglePanelCapas() {
         layout.classList.add('panel-cerrado');
         btn.textContent = '▶';
         btn.title = 'Mostrar panel';
-        if (btnFlotante) { btnFlotante.style.display = ''; btnFlotante.title = 'Mostrar panel'; }
+        if (btnFlotante) { btnFlotante.style.display = 'flex'; btnFlotante.title = 'Mostrar panel'; }
         if (btnToolbar) btnToolbar.title = 'Mostrar panel';
     } else {
         panelCapasVisible = true;
@@ -273,7 +273,7 @@ MEDIA_QUERY_MOVIL.addEventListener('change', function(e) {
         layout.classList.toggle('panel-cerrado', !panelCapasVisible);
     }
     btn.textContent = panelCapasVisible ? '◀' : '▶';
-    if (btnFlotante) btnFlotante.style.display = panelCapasVisible ? 'none' : '';
+    if (btnFlotante) btnFlotante.style.display = panelCapasVisible ? 'none' : 'flex';
     setTimeout(() => { try { map?.invalidateSize(); } catch(_) {} }, 250);
 });
 
