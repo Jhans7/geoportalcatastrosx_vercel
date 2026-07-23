@@ -270,7 +270,7 @@
                             <label id="btn_color_seleccion" class="btn-icono-capa btn-color-seleccion deshabilitado" title="Cambiar color de seleccionadas">
                                 <span class="icono-paleta-color" aria-hidden="true">🎨</span>
                                 <input id="color_capas_seleccionadas" type="color" value="#1976d2" aria-label="Color de seleccionadas"
-                                    onchange="cambiarColorCapasSeleccionadas(this.value)" disabled>
+                                    oninput="cambiarColorCapasSeleccionadas(this.value)" disabled>
                             </label>
                             <button id="btn_quitar_seleccion" class="btn-icono-capa btn-eliminar-capa" type="button" onclick="quitarCapasSeleccionadas()" title="Quitar seleccionadas" disabled>
                                 <svg class="icono-svg icono-papelera" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"/><path d="M9 7V4h6v3"/><path d="M7.5 7l1 13h7l1-13"/><path d="M10 10v7M14 10v7"/></svg>
