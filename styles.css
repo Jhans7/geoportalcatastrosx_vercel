@@ -502,29 +502,6 @@ html, body {
 
 #app_layout.panel-cerrado .panel-header-principal { display: none !important; }
 
-/* --- Boton flotante para re-abrir panel --- */
-
-.btn-flotante-panel {
-    display: none;
-    position: fixed;
-    top: 106px;
-    left: 8px;
-    z-index: 10000;
-    width: 34px;
-    height: 34px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    color: var(--text);
-    font-size: 14px;
-    cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    align-items: center;
-    justify-content: center;
-    touch-action: manipulation;
-}
-.btn-flotante-panel:hover { background: var(--primary-light); color: var(--primary); }
-
 /* --- Panel de capas --- */
 
 #panel_capas {
@@ -1610,37 +1587,18 @@ html, body {
     .app-header { height: 52px; min-height: 52px; }
     .barra-herramientas { height: 44px; min-height: 44px; }
     #app_layout {
-        grid-template-columns: 0px minmax(0, 1fr);
+        grid-template-columns: clamp(200px, 50vw, 260px) minmax(0, 1fr);
         overflow: hidden;
     }
-    #panel_capas {
-        position: fixed;
-        top: 96px;
-        left: -100%;
-        width: clamp(240px, 65vw, 320px);
-        height: calc(100% - 138px);
-        z-index: 9999;
-        transition: left .25s ease;
-        box-shadow: none;
-        border-right: none;
-    }
-    #app_layout.panel-abierto #panel_capas {
-        left: 0;
-        box-shadow: 4px 0 20px rgba(0,0,0,.25);
-    }
-    #app_layout.panel-cerrado #panel_capas {
-        left: -100%;
-        box-shadow: none;
-    }
-    .panel-disponibles { flex: 1 1 40%; }
-    .panel-cargadas { flex: 1 1 60%; }
+    #app_layout.panel-cerrado { grid-template-columns: 0px minmax(0, 1fr); }
     .barra-estado { height: auto; min-height: 38px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 6px 12px; }
     .panel-consultas-reportes { top: 100px; right: 10px; width: calc(100vw - 20px); }
     .menu-mapa-base { position: fixed; top: 108px; right: 10px; }
 }
 
 @media (max-width: 650px) {
-    #app_layout.panel-abierto #panel_capas { width: clamp(200px, 72vw, 280px); }
+    #app_layout { grid-template-columns: clamp(160px, 55vw, 220px) minmax(0, 1fr); }
+    #app_layout.panel-cerrado { grid-template-columns: 0px minmax(0, 1fr); }
     #panel_busqueda { width: 100%; min-width: 0; }
     #buscar_predio_input { min-width: 0; flex: 1; }
     .panel-acciones-tres { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 32px !important; }
