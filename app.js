@@ -205,6 +205,55 @@ function alternarSeccion(idSeccion, idBoton) {
 }
 
 // ============================================================
+// TOGGLE PANEL DE CAPAS
+// ============================================================
+
+const MEDIA_QUERY_MOVIL = window.matchMedia('(max-width: 760px)');
+
+function togglePanelCapas(mostrar) {
+    const layout = document.getElementById('app_layout');
+    const btn = document.getElementById('btn_toggle_panel');
+    if (!layout) return;
+    const abierto = typeof mostrar === 'boolean' ? mostrar : !layout.classList.contains('panel-abierto');
+    layout.classList.remove('panel-cerrado', 'panel-abierto');
+    if (MEDIA_QUERY_MOVIL.matches) {
+        layout.classList.add(abierto ? 'panel-abierto' : 'panel-cerrado');
+        btn.textContent = abierto ? '▶' : '◀';
+    } else {
+        layout.classList.add(abierto ? '' : 'panel-cerrado');
+        btn.textContent = abierto ? '◀' : '▶';
+    }
+    setTimeout(() => map?.invalidateSize(), 250);
+}
+
+// On desktop, default panel open; on mobile, default closed
+MEDIA_QUERY_MOVIL.addEventListener('change', function() {
+    const layout = document.getElementById('app_layout');
+    if (!layout) return;
+    if (this.matches) {
+        // switched to mobile: close panel by default
+        layout.classList.remove('panel-abierto');
+        layout.classList.add('panel-cerrado');
+        document.getElementById('btn_toggle_panel').textContent = '▶';
+    } else {
+        // switched to desktop: open panel by default
+        layout.classList.remove('panel-cerrado', 'panel-abierto');
+        document.getElementById('btn_toggle_panel').textContent = '◀';
+    }
+    setTimeout(() => map?.invalidateSize(), 250);
+});
+
+// Apply initial state on load
+(function initPanelState() {
+    const layout = document.getElementById('app_layout');
+    if (!layout) return;
+    if (MEDIA_QUERY_MOVIL.matches) {
+        layout.classList.add('panel-cerrado');
+        document.getElementById('btn_toggle_panel').textContent = '▶';
+    }
+})();
+
+// ============================================================
 // CONEXIÓN SUPABASE
 // ============================================================
 

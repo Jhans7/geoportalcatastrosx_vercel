@@ -454,7 +454,45 @@ html, body {
     grid-template-columns: 300px minmax(0, 1fr);
     overflow: hidden;
     background: var(--surface);
+    transition: grid-template-columns .25s ease;
 }
+
+#app_layout.panel-cerrado {
+    grid-template-columns: 0px minmax(0, 1fr);
+}
+
+#app_layout.panel-cerrado #panel_capas {
+    overflow: hidden;
+    padding: 0;
+    border-right: none;
+    min-width: 0;
+    width: 0;
+}
+
+/* --- Boton toggle panel --- */
+
+.btn-toggle-panel {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    z-index: 1000;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    transition: left .25s ease, background .15s;
+}
+.btn-toggle-panel:hover { background: var(--primary-light); color: var(--primary); }
+
+#app_layout.panel-cerrado .btn-toggle-panel { left: 8px; }
 
 /* --- Panel de capas --- */
 
@@ -1527,6 +1565,7 @@ html, body {
 
 @media (max-width: 900px) {
     #app_layout { grid-template-columns: 260px minmax(0, 1fr); }
+    #app_layout.panel-cerrado { grid-template-columns: 0px minmax(0, 1fr); }
     .herramienta-btn span:not(.herramienta-icono) { display: none; }
     .herramienta-btn { min-width: 36px; padding: 0 8px; }
     #estado_herramienta { max-width: 140px; }
@@ -1539,14 +1578,16 @@ html, body {
     #app_principal { grid-template-rows: 52px 44px 1fr 42px; }
     .app-header { height: 52px; min-height: 52px; }
     .barra-herramientas { height: 44px; min-height: 44px; }
-    #app_layout { grid-template-columns: 220px minmax(0, 1fr); }
+    #app_layout { grid-template-columns: 0px minmax(0, 1fr); }
+    #app_layout.panel-abierto { grid-template-columns: clamp(220px, 60vw, 300px) minmax(0, 1fr); position: relative; }
+    #app_layout.panel-abierto #panel_capas { box-shadow: 4px 0 16px rgba(0,0,0,.15); }
     .barra-estado { height: auto; min-height: 38px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 6px 12px; }
     .panel-consultas-reportes { top: 100px; right: 10px; width: calc(100vw - 20px); }
     .menu-mapa-base { position: fixed; top: 108px; right: 10px; }
 }
 
 @media (max-width: 650px) {
-    #app_layout { grid-template-columns: 200px minmax(0, 1fr); }
+    #app_layout.panel-abierto { grid-template-columns: clamp(180px, 70vw, 260px) minmax(0, 1fr); }
     #panel_busqueda { width: 100%; min-width: 0; }
     #buscar_predio_input { min-width: 0; flex: 1; }
     .panel-acciones-tres { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 32px !important; }
