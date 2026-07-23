@@ -209,49 +209,68 @@ function alternarSeccion(idSeccion, idBoton) {
 // ============================================================
 
 const MEDIA_QUERY_MOVIL = window.matchMedia('(max-width: 760px)');
+let panelCapasVisible = true;
 
-function togglePanelCapas(mostrar) {
+function togglePanelCapas() {
     const layout = document.getElementById('app_layout');
     const btn = document.getElementById('btn_toggle_panel');
+    const btnFlotante = document.getElementById('btn_flotante_panel');
     if (!layout) return;
-    const abierto = typeof mostrar === 'boolean' ? mostrar : !layout.classList.contains('panel-abierto');
-    layout.classList.remove('panel-cerrado', 'panel-abierto');
+    panelCapasVisible = !panelCapasVisible;
+    layout.classList.toggle('panel-cerrado', !panelCapasVisible);
     if (MEDIA_QUERY_MOVIL.matches) {
-        layout.classList.add(abierto ? 'panel-abierto' : 'panel-cerrado');
-        btn.textContent = abierto ? '▶' : '◀';
-    } else {
-        layout.classList.add(abierto ? '' : 'panel-cerrado');
-        btn.textContent = abierto ? '◀' : '▶';
+        layout.classList.toggle('panel-abierto', panelCapasVisible);
     }
-    setTimeout(() => map?.invalidateSize(), 250);
+    const texto = panelCapasVisible ? '◀' : '▶';
+    const titulo = panelCapasVisible ? 'Ocultar panel' : 'Mostrar panel';
+    if (btn) { btn.textContent = texto; btn.title = titulo; }
+    if (btnFlotante) { btnFlotante.textContent = panelCapasVisible ? '◀' : '▶'; btnFlotante.title = titulo; }
+    setTimeout(() => { try { map?.invalidateSize(); } catch(_) {} }, 250);
 }
 
-// On desktop, default panel open; on mobile, default closed
-MEDIA_QUERY_MOVIL.addEventListener('change', function() {
-    const layout = document.getElementById('app_layout');
-    if (!layout) return;
-    if (this.matches) {
-        // switched to mobile: close panel by default
-        layout.classList.remove('panel-abierto');
-        layout.classList.add('panel-cerrado');
-        document.getElementById('btn_toggle_panel').textContent = '▶';
-    } else {
-        // switched to desktop: open panel by default
-        layout.classList.remove('panel-cerrado', 'panel-abierto');
-        document.getElementById('btn_toggle_panel').textContent = '◀';
-    }
-    setTimeout(() => map?.invalidateSize(), 250);
-});
-
-// Apply initial state on load
+// On mobile (<760px), default panel closed; on desktop, default open
 (function initPanelState() {
     const layout = document.getElementById('app_layout');
-    if (!layout) return;
+    const btn = document.getElementById('btn_toggle_panel');
+    const btnFlotante = document.getElementById('btn_flotante_panel');
+    if (!layout || !btn) return;
     if (MEDIA_QUERY_MOVIL.matches) {
+        panelCapasVisible = false;
         layout.classList.add('panel-cerrado');
-        document.getElementById('btn_toggle_panel').textContent = '▶';
+        btn.textContent = '▶';
+        btn.title = 'Mostrar panel';
+        if (btnFlotante) { btnFlotante.textContent = '▶'; btnFlotante.title = 'Mostrar panel'; }
+    } else {
+        panelCapasVisible = true;
+        layout.classList.remove('panel-cerrado');
+        btn.textContent = '◀';
+        btn.title = 'Ocultar panel';
+        if (btnFlotante) { btnFlotante.textContent = '◀'; btnFlotante.title = 'Ocultar panel'; }
     }
+    setTimeout(() => { try { map?.invalidateSize(); } catch(_) {} }, 300);
 })();
+
+MEDIA_QUERY_MOVIL.addEventListener('change', function(e) {
+    const layout = document.getElementById('app_layout');
+    const btn = document.getElementById('btn_toggle_panel');
+    if (!layout || !btn) return;
+    if (e.matches) {
+        // switched to mobile
+        if (panelCapasVisible) {
+            layout.classList.add('panel-abierto');
+            layout.classList.remove('panel-cerrado');
+        } else {
+            layout.classList.add('panel-cerrado');
+            layout.classList.remove('panel-abierto');
+        }
+    } else {
+        // switched to desktop
+        layout.classList.remove('panel-abierto');
+        layout.classList.toggle('panel-cerrado', !panelCapasVisible);
+    }
+    btn.textContent = panelCapasVisible ? '◀' : '▶';
+    setTimeout(() => { try { map?.invalidateSize(); } catch(_) {} }, 250);
+});
 
 // ============================================================
 // CONEXIÓN SUPABASE

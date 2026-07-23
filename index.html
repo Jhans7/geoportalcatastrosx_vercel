@@ -227,6 +227,12 @@
         <!-- Layout principal: panel + mapa -->
         <div id="app_layout">
             <aside id="panel_capas">
+                <div class="panel-capas-header panel-header-principal">
+                    <div class="panel-capas-titulo">
+                        <h3>Panel de capas</h3>
+                    </div>
+                    <button id="btn_toggle_panel" class="btn-plegar btn-cerrar-panel" type="button" onclick="togglePanelCapas()" title="Ocultar panel">◀</button>
+                </div>
                 <section id="seccion_disponibles" class="panel-seccion panel-disponibles">
                     <div class="panel-capas-header">
                         <div class="panel-capas-titulo">
@@ -286,7 +292,7 @@
             </aside>
             <section id="map_wrap">
                 <div id="map"></div>
-                <button id="btn_toggle_panel" class="btn-toggle-panel" type="button" onclick="togglePanelCapas()" title="Mostrar u ocultar el panel de capas">◀</button>
+                <button id="btn_flotante_panel" class="btn-flotante-panel" type="button" onclick="togglePanelCapas()" title="Mostrar panel de capas">▶</button>
             </section>
         </div>
 
