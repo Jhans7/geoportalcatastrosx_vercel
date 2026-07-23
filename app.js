@@ -219,6 +219,8 @@ function togglePanelCapas() {
     const texto = panelCapasVisible ? '◀' : '▶';
     const titulo = panelCapasVisible ? 'Ocultar panel' : 'Mostrar panel';
     if (btn) { btn.textContent = texto; btn.title = titulo; }
+    const flotante = document.getElementById('btn_flotante_panel');
+    if (flotante) { flotante.style.display = panelCapasVisible ? 'none' : 'flex'; flotante.title = titulo; }
     setTimeout(() => { try { map?.invalidateSize(); } catch(_) {} }, 250);
 }
 

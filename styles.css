@@ -502,6 +502,29 @@ html, body {
 
 #app_layout.panel-cerrado .panel-header-principal { display: none !important; }
 
+/* --- Boton flotante para re-abrir panel --- */
+
+.btn-flotante-panel {
+    display: none;
+    position: fixed;
+    top: 90px;
+    left: 10px;
+    z-index: 10000;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+}
+.btn-flotante-panel:hover { background: var(--primary-light); color: var(--primary); }
+
 /* --- Panel de capas --- */
 
 #panel_capas {
