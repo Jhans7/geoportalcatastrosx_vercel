@@ -506,10 +506,10 @@ html, body {
 
 .btn-flotante-panel {
     display: none;
-    position: absolute;
-    top: 8px;
+    position: fixed;
+    top: 106px;
     left: 8px;
-    z-index: 1000;
+    z-index: 10000;
     width: 34px;
     height: 34px;
     border: 1px solid var(--border);
@@ -521,6 +521,7 @@ html, body {
     box-shadow: var(--shadow-sm);
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
 }
 .btn-flotante-panel:hover { background: var(--primary-light); color: var(--primary); }
 
