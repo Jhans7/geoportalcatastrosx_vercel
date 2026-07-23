@@ -1250,7 +1250,9 @@ function limpiarMediciones(mostrarMensaje = true) {
     poligonoMedicion = null;
     limpiarUbicacionReporte();
     modoSeleccionReporte = false;
+    modoEditarEstado = false;
     document.getElementById('map').style.cursor = '';
+    document.getElementById('btn_editar_estado')?.classList.remove('activa');
     establecerHerramienta(null, 'Ninguna');
     map.doubleClickZoom.enable();
     document.getElementById('estado_medicion').textContent = '—';
@@ -1897,6 +1899,100 @@ function limpiarFormularioReporte() {
     const resumen = document.getElementById('resumen_reporte');
     resumen.className = 'resumen-consulta-reporte';
     resumen.textContent = 'Selecciona tipo, ubicación y escribe un comentario.';
+}
+
+// ============================================================
+// EDITAR ESTADO DE REPORTES
+// ============================================================
+
+let modoEditarEstado = false;
+
+function activarEditarEstado() {
+    modoEditarEstado = !modoEditarEstado;
+    const btn = document.getElementById('btn_editar_estado');
+    btn?.classList.toggle('activa', modoEditarEstado);
+    document.getElementById('map').style.cursor = modoEditarEstado ? 'pointer' : '';
+    establecerHerramienta(modoEditarEstado ? 'editar_estado' : null, modoEditarEstado ? 'Editar estado' : 'Ninguna');
+    if (modoEditarEstado) {
+        estado('Haz clic sobre un punto de reporte para cambiar su estado.', 'black');
+    } else {
+        map.closePopup();
+    }
+}
+
+function reporteCercaDe(latlng, radio = 20) {
+    const capa = capasCargadas['reportes_portal'];
+    if (!capa) return null;
+    let masCercano = null;
+    let menorDist = Infinity;
+    capa.eachLayer(layer => {
+        if (!layer.getLatLng) return;
+        const d = latlng.distanceTo(layer.getLatLng());
+        if (d < menorDist) { menorDist = d; masCercano = layer; }
+    });
+    return menorDist <= radio ? masCercano : null;
+}
+
+map.on('click', function(e) {
+    if (!modoEditarEstado) return;
+    const layer = reporteCercaDe(e.latlng);
+    if (!layer) { estado('No hay un reporte cerca. Haz clic sobre un punto de reporte.', 'orange', 3000); return; }
+    const props = layer.feature?.properties;
+    if (!props?.id) { estado('Reporte sin identificador.', 'red'); return; }
+    const estados = ['Pendiente', 'En trámite', 'Atendido/Resuelto'];
+    const actual = estados.includes(props.estado) ? props.estado : 'Pendiente';
+    const opciones = estados.map(e => `<option value="${e}"${e === actual ? ' selected' : ''}>${e}</option>`).join('');
+    layer.bindPopup(`
+        <div style="min-width:220px">
+            <b>${escaparHtmlPopup(props.tipo_reporte || 'Reporte')}</b><br>
+            <small>${escaparHtmlPopup(props.comentario || '')}</small>
+            <hr style="margin:8px 0;border:none;border-top:1px solid var(--border)">
+            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Estado:</label>
+            <select id="edit_estado_select" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px">${opciones}</select>
+            <button onclick="guardarEstadoReporte('${props.id}')" style="width:100%;margin-top:8px;padding:7px;background:var(--primary);color:#fff;border:none;border-radius:4px;font-weight:600;cursor:pointer">Guardar</button>
+        </div>
+    `, { maxWidth: 300, minWidth: 220 }).openOn(map);
+});
+
+async function guardarEstadoReporte(id) {
+    const nuevoEstado = document.getElementById('edit_estado_select')?.value;
+    if (!nuevoEstado) return;
+    const supabaseUrl = document.getElementById('supabase_url').value.trim().replace(/\/+$/, '');
+    const supabaseKey = document.getElementById('supabase_key').value.trim();
+    if (!supabaseUrl || !supabaseKey) { estado('No hay conexión a Supabase.', 'red'); return; }
+    try {
+        const r = await fetch(`${supabaseUrl}/rest/v1/reportes_portal?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: headersSupabase(supabaseKey),
+            body: JSON.stringify({ estado: nuevoEstado }),
+            cache: 'no-store'
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const capa = capasCargadas['reportes_portal'];
+        if (capa) {
+            capa.eachLayer(layer => {
+                if (layer.feature?.properties?.id === id) {
+                    layer.feature.properties.estado = nuevoEstado;
+                    if (layer.getPopup()) {
+                        const p = layer.feature.properties;
+                        layer.unbindPopup();
+                        layer.bindPopup(crearPopupFormateado(p, 'reportes_portal'), {
+                            maxWidth: 420, minWidth: 290, autoPan: true,
+                            autoPanPaddingTopLeft: [20, 95], autoPanPaddingBottomRight: [20, 45], keepInView: true
+                        });
+                    }
+                }
+            });
+        }
+        map.closePopup();
+        modoEditarEstado = false;
+        document.getElementById('btn_editar_estado')?.classList.remove('activa');
+        document.getElementById('map').style.cursor = '';
+        establecerHerramienta(null, 'Ninguna');
+        estado(`Estado actualizado a "${nuevoEstado}".`, 'green', 4000);
+    } catch (err) {
+        estado('Error al guardar: ' + err.message, 'red');
+    }
 }
 
 // ============================================================
