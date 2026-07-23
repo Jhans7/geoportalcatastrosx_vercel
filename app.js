@@ -215,6 +215,7 @@ function togglePanelCapas() {
     const layout = document.getElementById('app_layout');
     const btn = document.getElementById('btn_toggle_panel');
     const btnFlotante = document.getElementById('btn_flotante_panel');
+    const btnToolbar = document.getElementById('btn_toggle_panel_toolbar');
     if (!layout) return;
     panelCapasVisible = !panelCapasVisible;
     layout.classList.toggle('panel-cerrado', !panelCapasVisible);
@@ -224,7 +225,8 @@ function togglePanelCapas() {
     const texto = panelCapasVisible ? '◀' : '▶';
     const titulo = panelCapasVisible ? 'Ocultar panel' : 'Mostrar panel';
     if (btn) { btn.textContent = texto; btn.title = titulo; }
-    if (btnFlotante) { btnFlotante.textContent = panelCapasVisible ? '◀' : '▶'; btnFlotante.title = titulo; }
+    if (btnFlotante) { btnFlotante.style.display = panelCapasVisible ? 'none' : ''; btnFlotante.title = titulo; }
+    if (btnToolbar) btnToolbar.title = titulo;
     setTimeout(() => { try { map?.invalidateSize(); } catch(_) {} }, 250);
 }
 
@@ -233,19 +235,22 @@ function togglePanelCapas() {
     const layout = document.getElementById('app_layout');
     const btn = document.getElementById('btn_toggle_panel');
     const btnFlotante = document.getElementById('btn_flotante_panel');
+    const btnToolbar = document.getElementById('btn_toggle_panel_toolbar');
     if (!layout || !btn) return;
     if (MEDIA_QUERY_MOVIL.matches) {
         panelCapasVisible = false;
         layout.classList.add('panel-cerrado');
         btn.textContent = '▶';
         btn.title = 'Mostrar panel';
-        if (btnFlotante) { btnFlotante.textContent = '▶'; btnFlotante.title = 'Mostrar panel'; }
+        if (btnFlotante) { btnFlotante.style.display = ''; btnFlotante.title = 'Mostrar panel'; }
+        if (btnToolbar) btnToolbar.title = 'Mostrar panel';
     } else {
         panelCapasVisible = true;
         layout.classList.remove('panel-cerrado');
         btn.textContent = '◀';
         btn.title = 'Ocultar panel';
-        if (btnFlotante) { btnFlotante.textContent = '◀'; btnFlotante.title = 'Ocultar panel'; }
+        if (btnFlotante) { btnFlotante.style.display = 'none'; btnFlotante.title = 'Ocultar panel'; }
+        if (btnToolbar) btnToolbar.title = 'Ocultar panel';
     }
     setTimeout(() => { try { map?.invalidateSize(); } catch(_) {} }, 300);
 })();
@@ -253,9 +258,9 @@ function togglePanelCapas() {
 MEDIA_QUERY_MOVIL.addEventListener('change', function(e) {
     const layout = document.getElementById('app_layout');
     const btn = document.getElementById('btn_toggle_panel');
+    const btnFlotante = document.getElementById('btn_flotante_panel');
     if (!layout || !btn) return;
     if (e.matches) {
-        // switched to mobile
         if (panelCapasVisible) {
             layout.classList.add('panel-abierto');
             layout.classList.remove('panel-cerrado');
@@ -264,11 +269,11 @@ MEDIA_QUERY_MOVIL.addEventListener('change', function(e) {
             layout.classList.remove('panel-abierto');
         }
     } else {
-        // switched to desktop
         layout.classList.remove('panel-abierto');
         layout.classList.toggle('panel-cerrado', !panelCapasVisible);
     }
     btn.textContent = panelCapasVisible ? '◀' : '▶';
+    if (btnFlotante) btnFlotante.style.display = panelCapasVisible ? 'none' : '';
     setTimeout(() => { try { map?.invalidateSize(); } catch(_) {} }, 250);
 });
 

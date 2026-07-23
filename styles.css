@@ -525,8 +525,6 @@ html, body {
 }
 .btn-flotante-panel:hover { background: var(--primary-light); color: var(--primary); }
 
-#app_layout.panel-cerrado .btn-flotante-panel { display: flex; }
-
 /* --- Panel de capas --- */
 
 #panel_capas {
